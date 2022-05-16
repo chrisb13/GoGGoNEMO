@@ -1,5 +1,5 @@
 # GoGGoNEMO
-Collection of scripts to set-up and loop NEMO on ARCHER2. Named in honour of the Go-Go-Mobil (https://www.youtube.com/watch?v=BvOz_qUPbXo)
+Collection of scripts to set-up and loop NEMO on ARCHER2. Named in honour of the Go-Go-Mobil (https://www.youtube.com/watch?v=BvOz_qUPbXo). Suggestions/pull requests for improvements welcome!
 
 # Requirements
 Python
