@@ -18,7 +18,7 @@ import contextlib as ctx
 import shutil
 import glob
 import subprocess
-import f90nml
+#import f90nml
 import numpy as np
 
 class bcolors:
@@ -75,12 +75,12 @@ def mkdomcfg(rP_WORKDIR,workfol,DOMAINcfg,BFILE,rP_nml_patch,killisf):
 
     #need bathymetry and isf file
 
-    if rP_nml_patch is not None:
-        nmlpath=rP_WORKDIR+'/domaincfg/namelist_cfg'
-        assert(os.path.exists(nmlpath)),"can't find domaincfg/namelist_cfg"
-        print(bcolors.HEADER+ "WARNING: "+bcolors.ENDC   +'We are patching the DOMAINCFG namelist '+nmlpath+' with: '+  bcolors.HEADER +str(rP_nml_patch) +bcolors.ENDC)
-        f90nml.patch(nmlpath, rP_nml_patch, out_path=nmlpath+'_new')
-        shutil.move(nmlpath+'_new', nmlpath)
+    #if rP_nml_patch is not None:
+    #    nmlpath=rP_WORKDIR+'/domaincfg/namelist_cfg'
+    #    assert(os.path.exists(nmlpath)),"can't find domaincfg/namelist_cfg"
+    #    print(bcolors.HEADER+ "WARNING: "+bcolors.ENDC   +'We are patching the DOMAINCFG namelist '+nmlpath+' with: '+  bcolors.HEADER +str(rP_nml_patch) +bcolors.ENDC)
+    #    f90nml.patch(nmlpath, rP_nml_patch, out_path=nmlpath+'_new')
+    #    shutil.move(nmlpath+'_new', nmlpath)
 
 
 def mkmesh(workfol,rP_WORKDIR,DOMAINcfg,BFILE,rP_nml_patch=None,killisf=False,extdomaincfg=['','']):
@@ -130,7 +130,7 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
     :returns: @todo
     """
     # check here that the symlinks exist
-    print("Check forcing files exist..")
+    print("Check forcing files (bathymetry/ts/executable) exist..")
     assert(os.path.exists(BFILE)),"can't find file: "+BFILE
     assert(os.path.exists(TSFILE)),"can't find file: "+TSFILE
     assert(os.path.exists(NEMOexe)),"can't find file: "+NEMOexe
@@ -138,13 +138,19 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
 
 
     RDIR="/work/n02/n02/chbull/nemo/run"
+    RDIR="/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/TESTING"
     rP_WORKDIR=RDIR+'/'+rP_CONFIG+'_'+rP_CASE
 
+    rP_PROJ='n02-PROPHET'
+    #change me alethea to tippaccs (check spelling)
     rP_PROJ='n02-PROPHET'
 
     rP_OCEANCORES=20
     if rP_CONFIG_TYPE=="ASF":
         rP_OCEANCORES=1024
+    elif rP_CONFIG_TYPE=="ROSS025":
+        #change me alethea
+        rP_OCEANCORES=300
 
     #avoid weird char'
     ## dodgy hack for desc
@@ -154,18 +160,16 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
     #rP_DESC=ifile.attrs['experiment'] 
 
     rP_DESC='RUND ESCRIPTION'
+    #change me alethea
+    rP_DESC='RUND ESCRIPTION'
 
 
     rP_YEAR0=1
-    rP_YEAR_MAX=21
-    rP_YEAR_MAX=351
     rP_YEAR_MAX=20
-    #rP_YEAR_MAX=60
-    #rP_YEAR_MAX=2
-    #rP_YEAR_MAX=5
-    #rP_YEAR_MAX=3
 
     #rP_STOCKDIR="/nerc/n02/n02/chbull/RawData/NEMO"  #- restart and output directory on rdf
+
+    #change me alethea - run dir for output of runs
     rP_STOCKDIR="/work/n02/n02/chbull/nemo/nemo_output" #- restart and output directory; now that rdf is offline
 
     #WCONFIG=/work/n02/n02/chbull/nemo/bld_configs/input_MISOMIP/NEMO_TYP
@@ -263,6 +267,7 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         #nemo and xios
         #os.symlink(src, dst)
         os.symlink(NEMOexe, 'nemo.exe')
+        os.symlink('/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/EXP02/domain_cfg.nc', 'domain_cfg.nc')
 
         #ln -s /work/n02/n02/chbull/nemo/models/XIOSv1/bin/xios_server.exe 
         #os.symlink('/work/n02/n02/chbull/nemo/models/XIOSv1_arc2/bin/xios_server.exe', 'xios_server.exe')
@@ -272,42 +277,48 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         # see pro/cons at 
         # https://stackoverflow.com/questions/123198/how-do-i-copy-a-file-in-python
         #ifiles=sorted(glob.glob('/home/chris/VBoxSHARED/repos/nemo_wed_analysis/ajtoy/configs/rnemoARCHER/*'))
+
+
+        #change me alethea -- add all namelist ref and cfg files, AND xml files for xios into GoGGoNEMO
         ifiles=sorted(glob.glob(workfol+'*'))
         assert(ifiles!=[]),"glob didn't find anything!"
         for f in ifiles:
             if os.path.isfile(f):
                 shutil.copy2(f,rP_WORKDIR+'/')
 
-        if rP_CONFIG_TYPE=="AJTOY":
-            shutil.move(rP_WORKDIR+'/'+'namelist_ref_ajtoy',rP_WORKDIR+'/'+'namelist_ref')
-            print(bcolors.WARNING + "WARNING: Using namelist_ref_ajtoy" + bcolors.ENDC)
-        elif rP_CONFIG_TYPE=="ASF":
-            shutil.move(rP_WORKDIR+'/'+'namelist_ref_asf',rP_WORKDIR+'/'+'namelist_ref')
-            print(bcolors.WARNING + "WARNING: Using namelist_ref_asf" + bcolors.ENDC)
 
-            print(bcolors.WARNING + "WARNING: Using xml file and field defs that will output namdyntrd" + bcolors.ENDC)
-            shutil.move(rP_WORKDIR+'/'+'file_def_nemo-oce_asfmo.xml',rP_WORKDIR+'/'+'file_def_nemo-oce.xml')
-            shutil.move(rP_WORKDIR+'/'+'field_def_nemo-oce_asfmo.xml',rP_WORKDIR+'/'+'field_def_nemo-oce.xml')
+        #change me alethea -- add symlinks for forcing (see example below)
 
-            #print(bcolors.WARNING + "WARNING: Using xml file and field defs that will output spin up diogs" + bcolors.ENDC)
-            #shutil.move(rP_WORKDIR+'/'+'file_def_nemo-oce_spin.xml',rP_WORKDIR+'/'+'file_def_nemo-oce.xml')
+        #if rP_CONFIG_TYPE=="AJTOY":
+        #    shutil.move(rP_WORKDIR+'/'+'namelist_ref_ajtoy',rP_WORKDIR+'/'+'namelist_ref')
+        #    print(bcolors.WARNING + "WARNING: Using namelist_ref_ajtoy" + bcolors.ENDC)
+        #elif rP_CONFIG_TYPE=="ASF":
+        #    shutil.move(rP_WORKDIR+'/'+'namelist_ref_asf',rP_WORKDIR+'/'+'namelist_ref')
+        #    print(bcolors.WARNING + "WARNING: Using namelist_ref_asf" + bcolors.ENDC)
 
-            os.mkdir(rP_WORKDIR+'/flxfce/')
-            if FLXFCE!='':
-                print()
-                print(bcolors.WARNING + "WARNING: Using flxfce " +  FLXFCE + bcolors.ENDC)
-                print()
-                assert(os.path.exists(FLXFCE[:-3]+'T.nc')),"can't find flux forcing grid_T file: "+FLXFCE[:-3]+'T.nc'
-                assert(os.path.exists(FLXFCE[:-3]+'U.nc')),"can't find flux forcing grid_T file: "+FLXFCE[:-3]+'U.nc'
-                assert(os.path.exists(FLXFCE[:-3]+'V.nc')),"can't find flux forcing grid_T file: "+FLXFCE[:-3]+'V.nc'
+        #    print(bcolors.WARNING + "WARNING: Using xml file and field defs that will output namdyntrd" + bcolors.ENDC)
+        #    shutil.move(rP_WORKDIR+'/'+'file_def_nemo-oce_asfmo.xml',rP_WORKDIR+'/'+'file_def_nemo-oce.xml')
+        #    shutil.move(rP_WORKDIR+'/'+'field_def_nemo-oce_asfmo.xml',rP_WORKDIR+'/'+'field_def_nemo-oce.xml')
 
-                for yy in np.arange(rP_YEAR0,rP_YEAR_MAX+52):
-                    yy=str(yy).zfill(4)+'.nc'
-                    os.symlink(FLXFCE[:-3]+'T.nc', rP_WORKDIR+'/flxfce/flxforce_grid_T_y'+yy)
-                    os.symlink(FLXFCE[:-3]+'U.nc', rP_WORKDIR+'/flxfce/flxforce_grid_U_y'+yy)
-                    os.symlink(FLXFCE[:-3]+'V.nc', rP_WORKDIR+'/flxfce/flxforce_grid_V_y'+yy)
-        else:
-            os.remove(rP_WORKDIR+'/'+'namelist_ref_ajtoy')
+        #    #print(bcolors.WARNING + "WARNING: Using xml file and field defs that will output spin up diogs" + bcolors.ENDC)
+        #    #shutil.move(rP_WORKDIR+'/'+'file_def_nemo-oce_spin.xml',rP_WORKDIR+'/'+'file_def_nemo-oce.xml')
+
+        #    os.mkdir(rP_WORKDIR+'/flxfce/')
+        #    if FLXFCE!='':
+        #        print()
+        #        print(bcolors.WARNING + "WARNING: Using flxfce " +  FLXFCE + bcolors.ENDC)
+        #        print()
+        #        assert(os.path.exists(FLXFCE[:-3]+'T.nc')),"can't find flux forcing grid_T file: "+FLXFCE[:-3]+'T.nc'
+        #        assert(os.path.exists(FLXFCE[:-3]+'U.nc')),"can't find flux forcing grid_T file: "+FLXFCE[:-3]+'U.nc'
+        #        assert(os.path.exists(FLXFCE[:-3]+'V.nc')),"can't find flux forcing grid_T file: "+FLXFCE[:-3]+'V.nc'
+
+        #        for yy in np.arange(rP_YEAR0,rP_YEAR_MAX+52):
+        #            yy=str(yy).zfill(4)+'.nc'
+        #            os.symlink(FLXFCE[:-3]+'T.nc', rP_WORKDIR+'/flxfce/flxforce_grid_T_y'+yy)
+        #            os.symlink(FLXFCE[:-3]+'U.nc', rP_WORKDIR+'/flxfce/flxforce_grid_U_y'+yy)
+        #            os.symlink(FLXFCE[:-3]+'V.nc', rP_WORKDIR+'/flxfce/flxforce_grid_V_y'+yy)
+        #else:
+        #    os.remove(rP_WORKDIR+'/'+'namelist_ref_ajtoy')
 
         if rP_nml_patch is not None:
             nmlpath=rP_WORKDIR+'/namelist_ref'
@@ -373,6 +384,8 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         handle.write('#SBATCH --time=00:20:00'+'\n')
         if rP_CONFIG_TYPE=="ASF":
             handle.write('#SBATCH --nodes=8'+'\n')
+        elif rP_CONFIG_TYPE=="ROSS025":
+            handle.write('#SBATCH --nodes=3'+'\n')
         else:
             handle.write('#SBATCH --nodes=1'+'\n')
 
@@ -390,31 +403,31 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         handle.write("#This is the script allows you to run NEMO real quick..."+"\n")
         handle.write(''+'\n')
 
-        if extdomaincfg[0]=='' or extdomaincfg[0]=='hacked':
-            handle.write('#create domain_cfg.nc'+'\n')
-            handle.write('cd '+'domaincfg'+"\n")
-            handle.write('srun -n 1 ./make_domain_cfg.exe '+"\n")
-            handle.write("if [ -f domain_cfg.nc ]; then"+"\n")
-            handle.write('   mv domain_cfg.nc ../'+"\n")
-            handle.write('else'+"\n")
-            handle.write('   echo "ERROR: domain_cfg NOT created, stopping."'+"\n")
-            handle.write('   exit 1'+"\n")
-            handle.write("fi"+"\n")
-            handle.write('cd '+'..'+"\n")
-            handle.write(''+'\n')
-            if extdomaincfg[0]=='hacked':
-                handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
-                handle.write('python ' +extdomaincfg[1] +' '+rP_WORKDIR+'/domain_cfg.nc '+rP_WORKDIR+'/domain_cfg_hckd.nc '+'\n')
-                handle.write("if [ -f domain_cfg_hckd.nc ]; then"+"\n")
-                handle.write('   echo "YAY: hacked domain_cfg created."'+"\n")
-                handle.write('   rm domain_cfg.nc'+"\n")
-                handle.write('   mv domain_cfg_hckd.nc domain_cfg.nc'+"\n")
-                handle.write('else'+"\n")
-                handle.write('   echo "ERROR: hacked domain_cfg NOT created, stopping."'+"\n")
-                handle.write('   exit 1'+"\n")
-                handle.write("fi"+"\n")
-                handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
-                handle.write(''+"\n")
+        #if extdomaincfg[0]=='' or extdomaincfg[0]=='hacked':
+        #    handle.write('#create domain_cfg.nc'+'\n')
+        #    handle.write('cd '+'domaincfg'+"\n")
+        #    handle.write('srun -n 1 ./make_domain_cfg.exe '+"\n")
+        #    handle.write("if [ -f domain_cfg.nc ]; then"+"\n")
+        #    handle.write('   mv domain_cfg.nc ../'+"\n")
+        #    handle.write('else'+"\n")
+        #    handle.write('   echo "ERROR: domain_cfg NOT created, stopping."'+"\n")
+        #    handle.write('   exit 1'+"\n")
+        #    handle.write("fi"+"\n")
+        #    handle.write('cd '+'..'+"\n")
+        #    handle.write(''+'\n')
+        #    if extdomaincfg[0]=='hacked':
+        #        handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
+        #        handle.write('python ' +extdomaincfg[1] +' '+rP_WORKDIR+'/domain_cfg.nc '+rP_WORKDIR+'/domain_cfg_hckd.nc '+'\n')
+        #        handle.write("if [ -f domain_cfg_hckd.nc ]; then"+"\n")
+        #        handle.write('   echo "YAY: hacked domain_cfg created."'+"\n")
+        #        handle.write('   rm domain_cfg.nc'+"\n")
+        #        handle.write('   mv domain_cfg_hckd.nc domain_cfg.nc'+"\n")
+        #        handle.write('else'+"\n")
+        #        handle.write('   echo "ERROR: hacked domain_cfg NOT created, stopping."'+"\n")
+        #        handle.write('   exit 1'+"\n")
+        #        handle.write("fi"+"\n")
+        #        handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
+        #        handle.write(''+"\n")
 
         handle.write('python preNEMO.py'+'\n')
         if rP_CONFIG_TYPE=="ASF":
@@ -438,6 +451,8 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         handle.write('#SBATCH --time=47:57:02'+'\n')
         if rP_CONFIG_TYPE=="ASF":
             handle.write('#SBATCH --nodes=8'+'\n')
+        elif rP_CONFIG_TYPE=="ROSS025":
+            handle.write('#SBATCH --nodes=3'+'\n')
         else:
             handle.write('#SBATCH --nodes=1'+'\n')
 
@@ -458,31 +473,31 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         handle.write('echo "Current Date and Time is (start): " '+'`date`'+"\n")
         handle.write(''+'\n')
 
-        if extdomaincfg[0]=='' or extdomaincfg[0]=='hacked':
-            handle.write('#create domain_cfg.nc'+'\n')
-            handle.write('cd '+'domaincfg'+"\n")
-            handle.write('srun -n 1 ./make_domain_cfg.exe '+"\n")
-            handle.write("if [ -f domain_cfg.nc ]; then"+"\n")
-            handle.write('   mv domain_cfg.nc ../'+"\n")
-            handle.write('else'+"\n")
-            handle.write('   echo "ERROR: domain_cfg NOT created, stopping."'+"\n")
-            handle.write('   exit 1'+"\n")
-            handle.write("fi"+"\n")
-            handle.write('cd '+'..'+"\n")
-            handle.write(''+'\n')
-            if extdomaincfg[0]=='hacked':
-                handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
-                handle.write('python ' +extdomaincfg[1] +' '+rP_WORKDIR+'/domain_cfg.nc '+rP_WORKDIR+'/domain_cfg_hckd.nc '+'\n')
-                handle.write("if [ -f domain_cfg_hckd.nc ]; then"+"\n")
-                handle.write('   echo "YAY: hacked domain_cfg created."'+"\n")
-                handle.write('   rm domain_cfg.nc'+"\n")
-                handle.write('   mv domain_cfg_hckd.nc domain_cfg.nc'+"\n")
-                handle.write('else'+"\n")
-                handle.write('   echo "ERROR: hacked domain_cfg NOT created, stopping."'+"\n")
-                handle.write('   exit 1'+"\n")
-                handle.write("fi"+"\n")
-                handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
-                handle.write(''+"\n")
+        #if extdomaincfg[0]=='' or extdomaincfg[0]=='hacked':
+        #    handle.write('#create domain_cfg.nc'+'\n')
+        #    handle.write('cd '+'domaincfg'+"\n")
+        #    handle.write('srun -n 1 ./make_domain_cfg.exe '+"\n")
+        #    handle.write("if [ -f domain_cfg.nc ]; then"+"\n")
+        #    handle.write('   mv domain_cfg.nc ../'+"\n")
+        #    handle.write('else'+"\n")
+        #    handle.write('   echo "ERROR: domain_cfg NOT created, stopping."'+"\n")
+        #    handle.write('   exit 1'+"\n")
+        #    handle.write("fi"+"\n")
+        #    handle.write('cd '+'..'+"\n")
+        #    handle.write(''+'\n')
+        #    if extdomaincfg[0]=='hacked':
+        #        handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
+        #        handle.write('python ' +extdomaincfg[1] +' '+rP_WORKDIR+'/domain_cfg.nc '+rP_WORKDIR+'/domain_cfg_hckd.nc '+'\n')
+        #        handle.write("if [ -f domain_cfg_hckd.nc ]; then"+"\n")
+        #        handle.write('   echo "YAY: hacked domain_cfg created."'+"\n")
+        #        handle.write('   rm domain_cfg.nc'+"\n")
+        #        handle.write('   mv domain_cfg_hckd.nc domain_cfg.nc'+"\n")
+        #        handle.write('else'+"\n")
+        #        handle.write('   echo "ERROR: hacked domain_cfg NOT created, stopping."'+"\n")
+        #        handle.write('   exit 1'+"\n")
+        #        handle.write("fi"+"\n")
+        #        handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
+        #        handle.write(''+"\n")
 
         handle.write(' '+"\n")
         handle.write('cd $cwd'+"\n")
@@ -532,195 +547,6 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
     subprocess.call('chmod u+x '+rP_WORKDIR+'/goNEMOlong.sh',shell=True)
 
 
-    with ctx.closing(open(rP_WORKDIR+'/goNEMOproduction.sh','w')) as handle:
-        handle.write('#!/bin/bash'+'\n')
-        handle.write('#SBATCH --job-name='+rP_CONFIG+'_'+rP_CASE+'\n')
-        handle.write('#SBATCH --time=23:57:02'+'\n')
-        #handle.write('#SBATCH --time=47:57:02'+'\n')
-        if rP_CONFIG_TYPE=="ASF":
-            handle.write('#SBATCH --nodes=8'+'\n')
-        else:
-            handle.write('#SBATCH --nodes=1'+'\n')
-
-        handle.write('#SBATCH --ntasks='+str(rP_OCEANCORES)+'\n')
-        handle.write('#SBATCH --account=n02-PROPHET'+'\n')
-        handle.write('#SBATCH --partition=standard'+'\n')
-        #handle.write('#SBATCH --qos=long'+'\n')
-        handle.write('#SBATCH --qos=standard'+'\n')
-        handle.write('module restore'+"\n")
-        handle.write('module load cray-hdf5-parallel'+"\n")
-        handle.write('module load cray-netcdf-hdf5parallel'+"\n")
-        handle.write('module load xpmem'+"\n")
-        handle.write('module load perftools-base'+"\n")
-        handle.write('export OMP_NUM_THREADS=1'+'\n')
-        handle.write('export PYTHONPATH=/work/n02/n02/chbull/anaconda3/pkgs;export PATH=/work/n02/n02/chbull/anaconda3/bin:$PATH;source activate root'+'\n')
-        handle.write('#'+'\n')
-        handle.write("#This is the script allows you to run NEMO one job at a time..."+"\n")
-        handle.write('echo "Current Date and Time is (start): " '+'`date`'+"\n")
-        handle.write(''+'\n')
-
-        if extdomaincfg[0]=='' or extdomaincfg[0]=='hacked':
-            handle.write('#create domain_cfg.nc'+'\n')
-            handle.write('cd '+'domaincfg'+"\n")
-            handle.write('srun -n 1 ./make_domain_cfg.exe '+"\n")
-            handle.write("if [ -f domain_cfg.nc ]; then"+"\n")
-            handle.write('   mv domain_cfg.nc ../'+"\n")
-            handle.write('else'+"\n")
-            handle.write('   echo "ERROR: domain_cfg NOT created, stopping."'+"\n")
-            handle.write('   exit 1'+"\n")
-            handle.write("fi"+"\n")
-            handle.write('cd '+'..'+"\n")
-            handle.write(''+'\n')
-            if extdomaincfg[0]=='hacked':
-                handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
-                handle.write('python ' +extdomaincfg[1] +' '+rP_WORKDIR+'/domain_cfg.nc '+rP_WORKDIR+'/domain_cfg_hckd.nc '+'\n')
-                handle.write("if [ -f domain_cfg_hckd.nc ]; then"+"\n")
-                handle.write('   echo "YAY: hacked domain_cfg created."'+"\n")
-                handle.write('   rm domain_cfg.nc'+"\n")
-                handle.write('   mv domain_cfg_hckd.nc domain_cfg.nc'+"\n")
-                handle.write('else'+"\n")
-                handle.write('   echo "ERROR: hacked domain_cfg NOT created, stopping."'+"\n")
-                handle.write('   exit 1'+"\n")
-                handle.write("fi"+"\n")
-                handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
-                handle.write(''+"\n")
-
-        handle.write(' '+"\n")
-        handle.write('cd $cwd'+"\n")
-        handle.write("if [ -f time.year.step ]; then"+"\n")
-        handle.write("   source time.year.step"+"\n")
-        handle.write('else'+"\n")
-        handle.write("   echo 'year=1' > time.year.step"+"\n")
-        handle.write("   source time.year.step"+"\n")
-        handle.write(' '+"\n")
-        handle.write("fi"+"\n")
-
-        handle.write('echo "---                ---"'+"\n")
-        handle.write('echo "---  Phase 1 start ---"'+"\n")
-        handle.write('echo "---     Spinup     ---"'+"\n")
-        handle.write('echo "---                ---"'+"\n")
-
-        handle.write('echo "Running year: "'+"\n")
-        handle.write('echo "Running year: "$year" out of '+str(rP_YEAR_MAX)+'"'+"\n")
-        handle.write('echo " "'+"\n")
-        #this should be the number of spin up years you want, e.g., if rP_YEAR_MAX=20 and you have SYEARS=int(rP_YEAR_MAX)-4, then 20-5 (15!) will be spin up
-        #SYEARS=int(rP_YEAR_MAX)-4
-        SYEARS=int(rP_YEAR_MAX)-9
-        handle.write("while [ $year -lt "+str(SYEARS)+" ]"+"\n")
-        handle.write('do'+"\n")
-
-        handle.write('    echo "Current Date and Time is ("$year" start): " '+'`date`'+"\n")
-        handle.write('    echo "Run NEMO"'+"\n")
-
-        handle.write('    cd '+rP_WORKDIR+"\n")
-        handle.write('    echo "Current directory is:"'+"\n")
-        handle.write('    pwd'+"\n")
-        handle.write('    python preNEMO.py'+"\n")
-        handle.write('    srun --ntasks='+str(rP_OCEANCORES)+' ./nemo.exe'+'\n')
-        handle.write(' '+"\n")
-
-        handle.write('    echo "Clean up NEMO"'+"\n")
-        handle.write('    srun --ntasks='+'1'+' --tasks-per-node='+'1'+' --cpus-per-task=1 python postNEMO.py '+"\n")
-
-        handle.write('    wait'+"\n")
-        handle.write('    echo "Current Date and Time is ("$year" end): " '+'`date`'+"\n")
-
-        handle.write('    '+"\n")
-
-        handle.write('    echo "And repeat."'+"\n")
-
-        handle.write("    year=$[$year+1]"+"\n")
-        handle.write('    cd $cwd'+"\n")
-        handle.write("    echo 'year='$year > time.year.step"+"\n")
-        handle.write('done'+"\n")
-
-        handle.write('echo "---              ---"'+"\n")
-        handle.write('echo "---  Phase 1 end ---"'+"\n")
-        handle.write('echo "---              ---"'+"\n")
-        handle.write('echo ""'+"\n")
-
-        handle.write('#change outputs from spin up to ones with full output and momentum diagnostics'+'\n')
-        handle.write('mv file_def_nemo-oce_asfmo.xml file_def_nemo-oce.xml'+"\n")
-        handle.write('mv field_def_nemo-oce_asfmo.xml field_def_nemo-oce.xml'+"\n")
-        handle.write('#thanks Marshall!'+'\n')
-        handle.write('f90nml -g namtrd -v ln_dyn_trd=True --patch namelist_cfg namelist_meh'+"\n")
-        handle.write('mv namelist_meh namelist_cfg '+"\n")
-        
-        handle.write('echo ""'+"\n")
-
-        handle.write('echo "---                ---"'+"\n")
-        handle.write('echo "---  Phase 2 start ---"'+"\n")
-        handle.write('echo "---  USEFUL OUTPUT ---"'+"\n")
-
-        handle.write("while [ $year -lt "+str(int(rP_YEAR_MAX)+1)+" ]"+"\n")
-        handle.write('do'+"\n")
-
-        handle.write('    echo "Current Date and Time is ("$year" start): " '+'`date`'+"\n")
-        handle.write('    echo "Run NEMO"'+"\n")
-
-        handle.write('    cd '+rP_WORKDIR+"\n")
-        handle.write('    echo "Current directory is:"'+"\n")
-        handle.write('    pwd'+"\n")
-        handle.write('    python preNEMO.py'+"\n")
-        handle.write('    srun --ntasks='+str(rP_OCEANCORES)+' ./nemo.exe'+'\n')
-        handle.write(' '+"\n")
-
-        handle.write('    echo "Clean up NEMO"'+"\n")
-        handle.write('    srun --ntasks='+'1'+' --tasks-per-node='+'1'+' --cpus-per-task=1 python postNEMO.py '+"\n")
-
-        handle.write('    wait'+"\n")
-        handle.write('    echo "Current Date and Time is ("$year" end): " '+'`date`'+"\n")
-
-        handle.write('    '+"\n")
-
-        handle.write('    echo "And repeat."'+"\n")
-
-        handle.write("    year=$[$year+1]"+"\n")
-        handle.write('    cd $cwd'+"\n")
-        handle.write("    echo 'year='$year > time.year.step"+"\n")
-        handle.write('done'+"\n")
-
-        handle.write('echo "---                ---"'+"\n")
-        handle.write('echo "---  Phase 2 end   ---"'+"\n")
-        handle.write('echo "---                ---"'+"\n")
-
-        #add if statement here!
-        #if [ $Server_Name -eq 1 ];then
-        handle.write("if [ $year -eq "+str(int(rP_YEAR_MAX)+1)+" ]; then"+"\n")
-        handle.write("   echo 'Sweet, we have finished the run side of things now to do post proc'"+"\n")
-
-        handle.write('   echo "---                      ---"'+"\n")
-        handle.write('   echo "---  Post-proc start     ---"'+"\n")
-        handle.write('   echo "Current Date and Time is (end): " '+'`date`'+"\n")
-        handle.write('   echo ""'+"\n")
-        handle.write('   echo "#activate anaconda (this needs python2)"'+"\n")
-        handle.write('   export PYTHONPATH=/work/n02/n02/chbull/anaconda2/pkgs;export PATH=/work/n02/n02/chbull/anaconda2/bin:$PATH;source activate root'+"\n")
-
-        #need to find mk_nemo_spinup.py
-        #output folder - this doesn't exist yet!
-        odir=rP_STOCKDIR+'/'+rP_CONFIG+'_'+rP_CASE+'/'
-        supf=os.path.dirname(os.path.dirname(os.path.dirname(workfol)))+'/diagnostics/mk_nemo_spinup.py'
-        assert(os.path.exists(supf)),"cannot find mk_nemo_spinup.py file"
-        
-        handle.write('   echo "run wrappers for spin up and ncra post proc"'+"\n")
-        #crucial so that the wrappers are found in the 'right' place - does mean the pbs files will be here tho
-        handle.write('   cd '+os.path.dirname(os.path.dirname(os.path.dirname(workfol)))+'/diagnostics/'+"\n")
-        handle.write('   python ' + supf + ' ' + odir + ' ' + odir+"\n")
-
-        handle.write('   echo "---  Post-proc end     ---"'+"\n")
-        handle.write('   echo "---                    ---"'+"\n")
-
-        handle.write('else'+"\n")
-        handle.write("   echo 'E R R O R: something has gone wrong and we havent done the right amount of years to be here (doing post-proc of production output)..'"+"\n")
-        handle.write('   echo "Current Date and Time is (end): " '+'`date`'+"\n")
-        handle.write('   exit 1'+"\n")
-        handle.write("fi"+"\n")
-
-        handle.write('echo "Current Date and Time is (end): " '+'`date`'+"\n")
-        handle.write('echo "Its over..."'+"\n")
-
-    subprocess.call('chmod u+x '+rP_WORKDIR+'/goNEMOproduction.sh',shell=True)
-
     #so we can run lots at once
     mkdir(workfol+'rfiles/')
     if not os.path.exists(workfol+'rfiles/runme'):
@@ -735,7 +561,8 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
 
 if __name__ == "__main__":
     workfol='/work/n02/n02/chbull/repos/nemo_wed_analysis/ajtoy/configs/rnemoARCHER2/'
-    
+    workfol='/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/GoGGoNEMO/'
+
     IFX='-30'
     CASE='01'
     CASE='04'
@@ -746,44 +573,52 @@ if __name__ == "__main__":
     #rP_CONFIG_TYPE='AJTOY'
     rP_CONFIG_TYPE='ASF'
     rP_CONFIG_TYPE="SR_ML"
+    rP_CONFIG_TYPE="ROSS025"
     mkillisf=False
     rP_nml_patch={}
 
-    for NUM,flx in zip([88,89,90,91,92],['18','19','01','20','21']):
 
-        if rP_CONFIG_TYPE=="SVM":
-            pass
-        elif rP_CONFIG_TYPE=="AJTOY":
-            pass
-        elif rP_CONFIG_TYPE=="ASF":
-            pass
-        elif rP_CONFIG_TYPE=="SR_ML":
-            WCONFIG='/mnt/lustre/a2fs-work2/work/n02/shared/chbull/SR_64x64_N100'
-            WCONFIG='/work/n02/shared/chbull/SR_64x64_NewBathyTest'
-            WCONFIG='/mnt/lustre/a2fs-work2/work/n02/shared/shrr/output_tests_v2'
-            NEMOdir='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/'
-            NEMOexe='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tests/slopeVmelt/BLD/bin/nemo.exe'
-            #sebastian's wacky geometries
-            #BFILE='/mnt/lustre/a2fs-work2/work/n02/shared/chbull/SR_64x64_test/bathy_meter_Exp00003.nc'
-            #TSFILE='/mnt/lustre/a2fs-work2/work/n02/shared/chbull/SR_64x64_test/TS_init_Exp00003.nc'
-            BFILE =WCONFIG+'/bathy_meter_Exp'+str(NUM).zfill(5)+'.nc'
-            TSFILE=WCONFIG+'/TS_init_Exp'+str(NUM).zfill(5)+'.nc'
-            rP_nml_domcfgpatch={}
-            rP_nml_domcfgpatch['namcfg']={'jpiglo':int(64),'jpidta':int(64),'jpjglo':int(64),'jpjdta':int(64)}
-            rP_nml_domcfgpatch['namdom']={'pphmax':float(2000.0)}
-            flxfce=''
-            customdomcfg=['','']
-        else:
-            print(bcolors.FAIL + "We are using config_type: "+rP_CONFIG_TYPE + bcolors.ENDC)
-            print(bcolors.FAIL + "E R R O R: I don't know what to do with this config type."+ bcolors.ENDC)
-            sys.exit()
+    if rP_CONFIG_TYPE=="SVM":
+        pass
+    elif rP_CONFIG_TYPE=="AJTOY":
+        pass
+    elif rP_CONFIG_TYPE=="ASF":
+        pass
+    elif rP_CONFIG_TYPE=="SR_ML":
+        pass
+    elif rP_CONFIG_TYPE=="ROSS025":
+        NUM=1
+        rP_CONFIG='expstuff'+str(NUM).zfill(3)
+        WCONFIG='/mnt/lustre/a2fs-work2/work/n02/shared/shrr/output_tests_v2'
+        NEMOdir='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/'
+        NEMOexe='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tests/slopeVmelt/BLD/bin/nemo.exe'
+        #sebastian's wacky geometries
+        #BFILE='/mnt/lustre/a2fs-work2/work/n02/shared/chbull/SR_64x64_test/bathy_meter_Exp00003.nc'
+        #TSFILE='/mnt/lustre/a2fs-work2/work/n02/shared/chbull/SR_64x64_test/TS_init_Exp00003.nc'
+        BFILE =WCONFIG+'/bathy_meter_ROSS025.nc'
+        TSFILE=WCONFIG+'/istate_TS_ROSS025.nc'
 
-        print(bcolors.WARNING + "WARNING: "  +'Hard overwriting'+  bcolors.ENDC + ' of NEMO version')
+        WCONFIG='/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/TESTING'
+        NEMOdir='/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/EXP02/'
+        NEMOexe='/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/BLD/bin/nemo.exe'
+        BFILE =WCONFIG+'/bathy_meter_ROSS025.nc'
+        TSFILE=WCONFIG+'/istate_TS_ROSS025.nc'
+        rP_nml_patch=None
+        rP_nml_domcfgpatch={}
+        rP_nml_domcfgpatch['namcfg']={'jpiglo':int(64),'jpidta':int(64),'jpjglo':int(64),'jpjdta':int(64)}
+        rP_nml_domcfgpatch['namdom']={'pphmax':float(2000.0)}
+        flxfce=''
+        customdomcfg=['','']
+    else:
+        print(bcolors.FAIL + "We are using config_type: "+rP_CONFIG_TYPE + bcolors.ENDC)
+        print(bcolors.FAIL + "E R R O R: I don't know what to do with this config type."+ bcolors.ENDC)
+        sys.exit()
 
-        rP_WORKDIR=main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,FLXFCE=flxfce,rP_nml_patch=rP_nml_patch,extdomaincfg=customdomcfg)
+    print(bcolors.WARNING + "WARNING: "  +'Hard overwriting'+  bcolors.ENDC + ' of NEMO version')
 
-        domaincfg='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tools/DOMAINcfg/BLD/bin/make_domain_cfg.exe'
-        mkmesh(workfol,rP_WORKDIR,domaincfg,BFILE,rP_nml_patch=rP_nml_domcfgpatch,killisf=mkillisf,extdomaincfg=customdomcfg)
-        subprocess.call('cd '+rP_WORKDIR+' ; sbatch '+rP_WORKDIR+'/goNEMOquick.sh',shell=True)
-        #subprocess.call('cd '+rP_WORKDIR+'; sbatch '+rP_WORKDIR+'/goNEMOlong.sh',shell=True)
-        #subprocess.call('cd '+rP_WORKDIR+'; sbatch '+rP_WORKDIR+'/goNEMOproduction.sh',shell=True)
+    rP_WORKDIR=main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,FLXFCE=flxfce,rP_nml_patch=rP_nml_patch,extdomaincfg=customdomcfg)
+
+    #domaincfg='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tools/DOMAINcfg/BLD/bin/make_domain_cfg.exe'
+    #mkmesh(workfol,rP_WORKDIR,domaincfg,BFILE,rP_nml_patch=rP_nml_domcfgpatch,killisf=mkillisf,extdomaincfg=customdomcfg)
+    #subprocess.call('cd '+rP_WORKDIR+' ; sbatch '+rP_WORKDIR+'/goNEMOquick.sh',shell=True)
+    #subprocess.call('cd '+rP_WORKDIR+'; sbatch '+rP_WORKDIR+'/goNEMOlong.sh',shell=True)
