@@ -11,6 +11,8 @@
  This is the script to set-up NEMO runs
 
  Update (16/05/2022): removed a lot of fluff to put it on github
+
+ Update (13/11/2023): hacked with Louis S for psmn e5
 """
 import sys,os
 import datetime
@@ -18,7 +20,7 @@ import contextlib as ctx
 import shutil
 import glob
 import subprocess
-#import f90nml
+import f90nml
 import numpy as np
 
 class bcolors:
@@ -139,6 +141,7 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
 
     RDIR="/work/n02/n02/chbull/nemo/run"
     RDIR="/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/TESTING"
+    RDIR="/scratch/E5N/lsaddier/nemo/run"
     rP_WORKDIR=RDIR+'/'+rP_CONFIG+'_'+rP_CASE
 
     rP_PROJ='n02-PROPHET'
@@ -151,6 +154,8 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
     elif rP_CONFIG_TYPE=="ROSS025":
         #change me alethea
         rP_OCEANCORES=300
+    elif rP_CONFIG_TYPE=="LSisomipplus":
+        rP_OCEANCORES=20
 
     #avoid weird char'
     ## dodgy hack for desc
@@ -162,6 +167,11 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
     rP_DESC='RUND ESCRIPTION'
     #change me alethea
     rP_DESC='RUND ESCRIPTION'
+    rP_DESC='RUN DESCRIPTION. Second run using GoGGoNEMO now with netcdf4 installed in LouisS conda env, hopefully this time pre and postnemo work'
+    rP_DESC='RUN DESCRIPTION. Third run using GoGGoNEMO now with netcdf4 installed in LouisS conda env, hopefully this time pre and postnemo work. Now trying out goNEMOlong..'
+    rP_DESC='RUN DESCRIPTION. Third run using GoGGoNEMO now with netcdf4 installed in LouisS conda env, hopefully this time pre and postnemo work. Now trying out goNEMOlong.. Testing the queue limit length, ask then beg for forgiveness'
+    rP_DESC='RUN DESCRIPTION. Third run using GoGGoNEMO now with netcdf4 installed in LouisS conda env, hopefully this time pre and postnemo work. Now trying out goNEMOlong..  Now having fixed rebuidnemo executable link'
+    rP_DESC='RUN DESCRIPTION. Third run using GoGGoNEMO now with netcdf4 installed in LouisS conda env, hopefully this time pre and postnemo work. Now trying out goNEMOlong..  Now having fixed rebuidnemo executable link. Fixing, i think, cwd before the creation of time.year.step in goNEMOlong. NOw moved to rebuild_nemo.exe with a namelist file to get rid of the dependency on ksh shell. Trying again now on the restart file as well'
 
 
     rP_YEAR0=1
@@ -170,13 +180,13 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
     #rP_STOCKDIR="/nerc/n02/n02/chbull/RawData/NEMO"  #- restart and output directory on rdf
 
     #change me alethea - run dir for output of runs
-    rP_STOCKDIR="/work/n02/n02/chbull/nemo/nemo_output" #- restart and output directory; now that rdf is offline
+    #rP_STOCKDIR="/work/n02/n02/chbull/nemo/nemo_output" #- restart and output directory; now that rdf is offline
+    rP_STOCKDIR="/scratch/E5N/lsaddier/nemo/nemo_output" #- restart and output directory; now that rdf is offline
 
     #WCONFIG=/work/n02/n02/chbull/nemo/bld_configs/input_MISOMIP/NEMO_TYP
     #WCONFIG='/work/n02/n02/chbull/nemo/bld_configs/input_ajtoy'
 
     FORCING='/work/n01/shared/core2'
-
 
     #if rP_nml_patch!={}:
         #print("")
@@ -185,7 +195,9 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
 
     #make sure you've compiled this!
     #rP_RBUILD_NEMO=NEMOdir+'/TOOLS/REBUILD_NEMO/rebuild_nemo'
-    rP_RBUILD_NEMO='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tools/REBUILD_NEMO/rebuild_nemo'
+    #rP_RBUILD_NEMO='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tools/REBUILD_NEMO/rebuild_nemo'
+    #rP_RBUILD_NEMO='/scratch/E5N/lsaddier/nemo/models/nemo_4.2.1/tools/REBUILD_NEMO/rebuild_nemo'
+    rP_RBUILD_NEMO='/scratch/E5N/lsaddier/nemo/models/nemo_4.2.1/tools/REBUILD_NEMO/BLD/bin/rebuild_nemo.exe'
     rP_MKPSI='/work/n02/n02/chbull/nemo/bld_configs/input_ajtoy/ncj_psi/post_grid_UV'
 
     DATE=str(datetime.datetime.now())
@@ -267,7 +279,9 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         #nemo and xios
         #os.symlink(src, dst)
         os.symlink(NEMOexe, 'nemo.exe')
-        os.symlink('/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/EXP02/domain_cfg.nc', 'domain_cfg.nc')
+        #os.symlink('/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/EXP02/domain_cfg.nc', 'domain_cfg.nc')
+
+        os.symlink(WCONFIG+'/domain_cfg.nc', 'domain_cfg.nc')
 
         #ln -s /work/n02/n02/chbull/nemo/models/XIOSv1/bin/xios_server.exe 
         #os.symlink('/work/n02/n02/chbull/nemo/models/XIOSv1_arc2/bin/xios_server.exe', 'xios_server.exe')
@@ -377,97 +391,119 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
             handle.write("    print('This script is designed to be imported...')"+"\n")
 
 
+
+
     with ctx.closing(open(rP_WORKDIR+'/goNEMOquick.sh','w')) as handle:
         handle.write('#!/bin/bash'+'\n')
-        handle.write('#SBATCH --qos=short'+'\n')
-        handle.write('#SBATCH --job-name=nemo_test'+'\n')
-        handle.write('#SBATCH --time=00:20:00'+'\n')
-        if rP_CONFIG_TYPE=="ASF":
-            handle.write('#SBATCH --nodes=8'+'\n')
-        elif rP_CONFIG_TYPE=="ROSS025":
-            handle.write('#SBATCH --nodes=3'+'\n')
-        else:
-            handle.write('#SBATCH --nodes=1'+'\n')
+        handle.write('#SBATCH --job-name=TestISOMIP_quick'+'\n')
+        handle.write('#SBATCH -o ./%x.%j.%N.out           # output file'+'\n')
+        handle.write('#SBATCH -e ./%x.%j.%N.err           # errors file'+'\n')
+        handle.write('#'+'\n')
+        handle.write('#SBATCH -p E5'+'\n')
+        handle.write('#SBATCH --nodes=2'+'\n')
+        handle.write('#SBATCH --ntasks-per-node=10'+'\n')
+        handle.write('#SBATCH --cpus-per-task=1'+'\n')
+        handle.write('#SBATCH --time=0-00:30:00           # day-hours:minutes:seconds'+'\n')
+        handle.write('#SBATCH --mem-per-cpu=2G'+'\n')
+        handle.write('###SBATCH --ntasks=20'+'\n')
+        handle.write('#SBATCH --exclusive'+'\n')
+        handle.write('#'+'\n')
+        handle.write('echo "The job ${SLURM_JOB_ID} is running on these nodes:"'+'\n')
+        handle.write('echo ${SLURM_NODELIST}'+'\n')
+        handle.write('echo'+'\n')
+        handle.write('#'+'\n')
+        handle.write('cd $SLURM_SUBMIT_DIR    # go to the work / submission directory'+'\n')
+        handle.write('#'+'\n')
+        handle.write('#'+'\n')
+        handle.write('module purge'+'\n')
+        handle.write('module use /applis/PSMN/debian11/E5/modules/all/'+'\n')
+        handle.write('module load netCDF-Fortran/4.6.1-gompi-2023a'+'\n')
 
-        handle.write('#SBATCH --ntasks='+str(rP_OCEANCORES)+'\n')
-        handle.write('#SBATCH --account=n02-PROPHET'+'\n')
-        handle.write('#SBATCH --partition=standard'+'\n')
-        handle.write('module restore'+"\n")
-        handle.write('module load cray-hdf5-parallel'+"\n")
-        handle.write('module load cray-netcdf-hdf5parallel'+"\n")
-        handle.write('module load xpmem'+"\n")
-        handle.write('module load perftools-base'+"\n")
-        handle.write('export OMP_NUM_THREADS=1'+'\n')
-        handle.write('export PYTHONPATH=/work/n02/n02/chbull/anaconda3/pkgs;export PATH=/work/n02/n02/chbull/anaconda3/bin:$PATH;source activate root'+'\n')
+        handle.write('export PYTHONPATH=/home/lsaddier/miniconda3/pkgs;export PATH=/home/lsaddier/miniconda3/bin:$PATH;source activate root'+'\n')
+
+        handle.write(''+'\n')
+
         handle.write('#'+'\n')
         handle.write("#This is the script allows you to run NEMO real quick..."+"\n")
         handle.write(''+'\n')
 
-        #if extdomaincfg[0]=='' or extdomaincfg[0]=='hacked':
-        #    handle.write('#create domain_cfg.nc'+'\n')
-        #    handle.write('cd '+'domaincfg'+"\n")
-        #    handle.write('srun -n 1 ./make_domain_cfg.exe '+"\n")
-        #    handle.write("if [ -f domain_cfg.nc ]; then"+"\n")
-        #    handle.write('   mv domain_cfg.nc ../'+"\n")
-        #    handle.write('else'+"\n")
-        #    handle.write('   echo "ERROR: domain_cfg NOT created, stopping."'+"\n")
-        #    handle.write('   exit 1'+"\n")
-        #    handle.write("fi"+"\n")
-        #    handle.write('cd '+'..'+"\n")
-        #    handle.write(''+'\n')
-        #    if extdomaincfg[0]=='hacked':
-        #        handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
-        #        handle.write('python ' +extdomaincfg[1] +' '+rP_WORKDIR+'/domain_cfg.nc '+rP_WORKDIR+'/domain_cfg_hckd.nc '+'\n')
-        #        handle.write("if [ -f domain_cfg_hckd.nc ]; then"+"\n")
-        #        handle.write('   echo "YAY: hacked domain_cfg created."'+"\n")
-        #        handle.write('   rm domain_cfg.nc'+"\n")
-        #        handle.write('   mv domain_cfg_hckd.nc domain_cfg.nc'+"\n")
-        #        handle.write('else'+"\n")
-        #        handle.write('   echo "ERROR: hacked domain_cfg NOT created, stopping."'+"\n")
-        #        handle.write('   exit 1'+"\n")
-        #        handle.write("fi"+"\n")
-        #        handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
-        #        handle.write(''+"\n")
-
         handle.write('python preNEMO.py'+'\n')
-        if rP_CONFIG_TYPE=="ASF":
-            handle.write('srun --ntasks='+str(rP_OCEANCORES)+' ./nemo.exe'+'\n')
-        else:
-            handle.write('srun --ntasks='+str(rP_OCEANCORES)+' --mem-bind=local --cpu-bind=v,map_cpu:00,0x1,0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x20,0x21,0x22,0x23, ./nemo.exe'+'\n')
+        handle.write('mpirun -np $SLURM_NTASKS ./nemo.exe'+'\n')
         handle.write('python postNEMO.py'+'\n')
-        handle.write('#or more simply'+'\n')
-        handle.write('#srun --distribution=block:block --hint=nomultithread -n 4 ./nemo.exe'+'\n')
 
-        handle.write('#rebuild outputs '+'\n')
-        handle.write('#/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tools/REBUILD_NEMO/rebuild_nemo mesh_mask '+str(rP_OCEANCORES)+'\n')
+
+        #CB old version, only works on ARCHER (UK)
+        #handle.write('#!/bin/bash'+'\n')
+        #handle.write('#SBATCH --qos=short'+'\n')
+        #handle.write('#SBATCH --job-name=nemo_test'+'\n')
+        #handle.write('#SBATCH --time=00:20:00'+'\n')
+        #if rP_CONFIG_TYPE=="ASF":
+        #    handle.write('#SBATCH --nodes=8'+'\n')
+        #elif rP_CONFIG_TYPE=="ROSS025":
+        #    handle.write('#SBATCH --nodes=3'+'\n')
+        #else:
+        #    handle.write('#SBATCH --nodes=1'+'\n')
+
+        #handle.write('#SBATCH --ntasks='+str(rP_OCEANCORES)+'\n')
+        #handle.write('#SBATCH --account=n02-PROPHET'+'\n')
+        #handle.write('#SBATCH --partition=standard'+'\n')
+        #handle.write('module restore'+"\n")
+        #handle.write('module load cray-hdf5-parallel'+"\n")
+        #handle.write('module load cray-netcdf-hdf5parallel'+"\n")
+        #handle.write('module load xpmem'+"\n")
+        #handle.write('module load perftools-base'+"\n")
+        #handle.write('export OMP_NUM_THREADS=1'+'\n')
+        #handle.write('export PYTHONPATH=/work/n02/n02/chbull/anaconda3/pkgs;export PATH=/work/n02/n02/chbull/anaconda3/bin:$PATH;source activate root'+'\n')
+        #handle.write('#'+'\n')
+        #handle.write("#This is the script allows you to run NEMO real quick..."+"\n")
+        #handle.write(''+'\n')
+
+
+        #handle.write('python preNEMO.py'+'\n')
+        #if rP_CONFIG_TYPE=="ASF":
+        #    handle.write('srun --ntasks='+str(rP_OCEANCORES)+' ./nemo.exe'+'\n')
+        #else:
+        #    handle.write('srun --ntasks='+str(rP_OCEANCORES)+' --mem-bind=local --cpu-bind=v,map_cpu:00,0x1,0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x20,0x21,0x22,0x23, ./nemo.exe'+'\n')
+        #handle.write('python postNEMO.py'+'\n')
+        #handle.write('#or more simply'+'\n')
+        #handle.write('#srun --distribution=block:block --hint=nomultithread -n 4 ./nemo.exe'+'\n')
+
+        #handle.write('#rebuild outputs '+'\n')
+        #handle.write('#/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tools/REBUILD_NEMO/rebuild_nemo mesh_mask '+str(rP_OCEANCORES)+'\n')
 
 
     subprocess.call('chmod u+x '+rP_WORKDIR+'/goNEMOquick.sh',shell=True)
 
     with ctx.closing(open(rP_WORKDIR+'/goNEMOlong.sh','w')) as handle:
         handle.write('#!/bin/bash'+'\n')
-        handle.write('#SBATCH --job-name='+rP_CONFIG+'_'+rP_CASE+'\n')
-        #handle.write('#SBATCH --time=23:57:02'+'\n')
-        handle.write('#SBATCH --time=47:57:02'+'\n')
-        if rP_CONFIG_TYPE=="ASF":
-            handle.write('#SBATCH --nodes=8'+'\n')
-        elif rP_CONFIG_TYPE=="ROSS025":
-            handle.write('#SBATCH --nodes=3'+'\n')
-        else:
-            handle.write('#SBATCH --nodes=1'+'\n')
+        handle.write('#SBATCH --job-name=TestISOMIP_long'+'\n')
+        handle.write('#SBATCH -o ./%x.%j.%N.out           # output file'+'\n')
+        handle.write('#SBATCH -e ./%x.%j.%N.err           # errors file'+'\n')
+        handle.write('#'+'\n')
+        handle.write('#SBATCH -p E5'+'\n')
+        handle.write('#SBATCH --nodes=2'+'\n')
+        handle.write('#SBATCH --ntasks-per-node=10'+'\n')
+        handle.write('#SBATCH --cpus-per-task=1'+'\n')
+        handle.write('#SBATCH --time=0-10:00:00           # day-hours:minutes:seconds'+'\n')
+        handle.write('#SBATCH --mem-per-cpu=2G'+'\n')
+        handle.write('###SBATCH --ntasks=20'+'\n')
+        handle.write('#SBATCH --exclusive'+'\n')
+        handle.write('#'+'\n')
+        handle.write('echo "The job ${SLURM_JOB_ID} is running on these nodes:"'+'\n')
+        handle.write('echo ${SLURM_NODELIST}'+'\n')
+        handle.write('echo'+'\n')
+        handle.write('#'+'\n')
+        handle.write('cd $SLURM_SUBMIT_DIR    # go to the work / submission directory'+'\n')
+        handle.write('#'+'\n')
+        handle.write('#'+'\n')
+        handle.write('module purge'+'\n')
+        handle.write('module use /applis/PSMN/debian11/E5/modules/all/'+'\n')
+        handle.write('module load netCDF-Fortran/4.6.1-gompi-2023a'+'\n')
 
-        handle.write('#SBATCH --ntasks='+str(rP_OCEANCORES)+'\n')
-        handle.write('#SBATCH --account=n02-PROPHET'+'\n')
-        handle.write('#SBATCH --partition=standard'+'\n')
-        #handle.write('#SBATCH --qos=standard'+'\n')
-        handle.write('#SBATCH --qos=long'+'\n')
-        handle.write('module restore'+"\n")
-        handle.write('module load cray-hdf5-parallel'+"\n")
-        handle.write('module load cray-netcdf-hdf5parallel'+"\n")
-        handle.write('module load xpmem'+"\n")
-        handle.write('module load perftools-base'+"\n")
-        handle.write('export OMP_NUM_THREADS=1'+'\n')
-        handle.write('export PYTHONPATH=/work/n02/n02/chbull/anaconda3/pkgs;export PATH=/work/n02/n02/chbull/anaconda3/bin:$PATH;source activate root'+'\n')
+        handle.write('export PYTHONPATH=/home/lsaddier/miniconda3/pkgs;export PATH=/home/lsaddier/miniconda3/bin:$PATH;source activate root'+'\n')
+
+        handle.write(''+'\n')
+
         handle.write('#'+'\n')
         handle.write("#This is the script allows you to run NEMO one job at a time..."+"\n")
         handle.write('echo "Current Date and Time is (start): " '+'`date`'+"\n")
@@ -499,8 +535,16 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         #        handle.write('echo "Current Date and Time is (for domaincfg hacking timer): " '+'`date`'+"\n")
         #        handle.write(''+"\n")
 
+
         handle.write(' '+"\n")
-        handle.write('cd $cwd'+"\n")
+        #bug? cwd was empty on e5 (and archer?!)
+        #handle.write('cd $cwd'+"\n")
+
+        handle.write('    pwd'+"\n")
+        handle.write('    cd '+rP_WORKDIR+"\n")
+        handle.write('    echo "Current directory is:"'+"\n")
+        handle.write('    pwd'+"\n")
+
         handle.write("if [ -f time.year.step ]; then"+"\n")
         handle.write("   source time.year.step"+"\n")
         handle.write('else'+"\n")
@@ -523,11 +567,13 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
         handle.write('    echo "Current directory is:"'+"\n")
         handle.write('    pwd'+"\n")
         handle.write('    python preNEMO.py'+"\n")
-        handle.write('    srun --ntasks='+str(rP_OCEANCORES)+' ./nemo.exe'+'\n')
+        #handle.write('    srun --ntasks='+str(rP_OCEANCORES)+' ./nemo.exe'+'\n')
+        handle.write('    mpirun -np $SLURM_NTASKS ./nemo.exe'+'\n')
         handle.write(' '+"\n")
 
         handle.write('    echo "Clean up NEMO"'+"\n")
-        handle.write('    srun --ntasks='+'1'+' --tasks-per-node='+'1'+' --cpus-per-task=1 python postNEMO.py '+"\n")
+        #handle.write('    srun --ntasks='+'1'+' --tasks-per-node='+'1'+' --cpus-per-task=1 python postNEMO.py '+"\n")
+        handle.write('    python postNEMO.py'+'\n')
 
         handle.write('    wait'+"\n")
         handle.write('    echo "Current Date and Time is ("$year" end): " '+'`date`'+"\n")
@@ -560,20 +606,25 @@ def main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,r
 
 
 if __name__ == "__main__":
+    #for idx,offset in zip([6,7,8,9],[0.02,0.04,0.06,0.08]):
     workfol='/work/n02/n02/chbull/repos/nemo_wed_analysis/ajtoy/configs/rnemoARCHER2/'
     workfol='/work/n02/n02/asmou/NEMORC/cfgs/ROSS025_4.2/GoGGoNEMO/'
+    workfol='/home/lsaddier/runnemo/'
 
     IFX='-30'
-    CASE='01'
     CASE='04'
+    CASE='01'
     #CASE='s01'
-    rP_CASE=CASE.zfill(5)
+    rP_CASE=CASE.zfill(3)
 
     rP_CONFIG_TYPE='SVM'
     #rP_CONFIG_TYPE='AJTOY'
     rP_CONFIG_TYPE='ASF'
     rP_CONFIG_TYPE="SR_ML"
     rP_CONFIG_TYPE="ROSS025"
+
+    rP_CONFIG_TYPE="LSisomipplus"
+
     mkillisf=False
     rP_nml_patch={}
 
@@ -609,6 +660,30 @@ if __name__ == "__main__":
         rP_nml_domcfgpatch['namdom']={'pphmax':float(2000.0)}
         flxfce=''
         customdomcfg=['','']
+    elif rP_CONFIG_TYPE=="LSisomipplus":
+        NUM=4
+        #NUM=idx
+        NUM=14
+        rP_CONFIG='iso'+str(NUM).zfill(3)
+
+        WCONFIG='/scratch/E5N/lsaddier/nemo/bld_configs/isomipplus'
+        NEMOdir='/scratch/E5N/lsaddier/nemo/models/nemo_4.2.1/'
+        NEMOexe='/scratch/E5N/lsaddier/nemo/models/nemo_4.2.1/tests/MY_ISOMIP+_2/BLD/bin/nemo.exe'
+
+        BFILE =WCONFIG+'/isomip+_NEMO_242_geom_ocean4.nc'
+        TSFILE=WCONFIG+'/nemo_base_WARM.nc'
+
+        #LS: modify NEMO namelist 
+        rP_nml_patch=None
+        #rP_nml_patch={}
+        #rP_nml_patch['namisf']={'rn_gammat0':0.0215,'cn_gammablk':'spe'}
+        #rP_nml_patch['namisf']={'rn_gammat0':0.0215 + offset}
+
+        rP_nml_domcfgpatch={}
+        rP_nml_domcfgpatch['namcfg']={'jpiglo':int(64),'jpidta':int(64),'jpjglo':int(64),'jpjdta':int(64)}
+        rP_nml_domcfgpatch['namdom']={'pphmax':float(2000.0)}
+        flxfce=''
+        customdomcfg=['','']
     else:
         print(bcolors.FAIL + "We are using config_type: "+rP_CONFIG_TYPE + bcolors.ENDC)
         print(bcolors.FAIL + "E R R O R: I don't know what to do with this config type."+ bcolors.ENDC)
@@ -618,7 +693,7 @@ if __name__ == "__main__":
 
     rP_WORKDIR=main(workfol,rP_CONFIG,rP_CONFIG_TYPE,rP_CASE,NEMOexe,WCONFIG,BFILE,TSFILE,FLXFCE=flxfce,rP_nml_patch=rP_nml_patch,extdomaincfg=customdomcfg)
 
-    #domaincfg='/mnt/lustre/a2fs-work2/work/n02/n02/chbull/nemo/models/NEMO4/tools/DOMAINcfg/BLD/bin/make_domain_cfg.exe'
+    #domaincfg='/scratch/E5N/lsaddier/nemo/models/nemo_4.2.1/tools/DOMAINcfg/BLD/bin/make_domain_cfg.exe'
     #mkmesh(workfol,rP_WORKDIR,domaincfg,BFILE,rP_nml_patch=rP_nml_domcfgpatch,killisf=mkillisf,extdomaincfg=customdomcfg)
     #subprocess.call('cd '+rP_WORKDIR+' ; sbatch '+rP_WORKDIR+'/goNEMOquick.sh',shell=True)
-    #subprocess.call('cd '+rP_WORKDIR+'; sbatch '+rP_WORKDIR+'/goNEMOlong.sh',shell=True)
+    subprocess.call('cd '+rP_WORKDIR+'; sbatch '+rP_WORKDIR+'/goNEMOlong.sh',shell=True)

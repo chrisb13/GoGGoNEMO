@@ -74,7 +74,8 @@ if __name__ == "__main__":
 
     LogStart('',fout=False)
 
-    ofol='/fs2/n02/n02/chbull/nemo/nemo_output/'
+    #ofol='/fs2/n02/n02/chbull/nemo/nemo_output/'
+    ofol='/scratch/E5N/lsaddier/nemo/nemo_output/'
 
     lg.info("******************************************")
     lg.info("*   project "+rP_PROJ  +"                    ")
@@ -100,6 +101,7 @@ if __name__ == "__main__":
         NDAYS=5
         # NDAYS=32
         NDAYS=365
+        NDAYS=360
         lg.info("We are running with NDAYS: "+ str(NDAYS))
 
         # ##-- calculate corresponding number of time steps for NEMO:
@@ -108,7 +110,10 @@ if __name__ == "__main__":
 
         # RN_DT=`grep "rn_rdt " namelist_nemo_GENERIC_${rP_CONFIG} |cut -d '=' -f2 | cut -d '!' -f1 | sed -e "s/ //g"`
         nml = f90nml.read(nmlpath)
-        RN_DT=nml['namdom']['rn_rdt']
+
+        #LouisS, this is because you are using Nemo4.2.1 where they changed the time step variable name, who knows why?! CB
+        #RN_DT=nml['namdom']['rn_rdt']
+        RN_DT=nml['namdom']['rn_Dt']
 
         nml_patch={}
         if not os.path.exists(rP_WORKDIR+'prod_nemo.db'):

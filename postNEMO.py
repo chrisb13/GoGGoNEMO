@@ -61,8 +61,10 @@ def rebuild_mesh_mask(handle):
     handle.write(''+'\n')
     handle.write('echo "Re-combining: '+'mesh_mask'+'"'+'\n')
     handle.write('cp '+rP_RBUILD_NEMO+' '+'rebuild_nemo'+'\n')
-    handle.write('cp '+rP_RBUILD_NEMO+'.exe'+' '+'rebuild_nemo.exe'+'\n')
-    handle.write('srun -n 1 '+'rebuild_nemo'+' '+'mesh_mask'+' '+str(rP_OCEANCORES)+'\n')
+    #cb ksh workaround
+    #handle.write('cp '+rP_RBUILD_NEMO+'.exe'+' '+'rebuild_nemo.exe'+'\n')
+    #handle.write('mpirun -np 1 '+'rebuild_nemo'+' '+'mesh_mask'+' '+str(rP_OCEANCORES)+'\n')
+    handle.write('mpirun -np 1 '+'rebuild_nemo'+' '+'nam_rebuild'+'\n')
     handle.write(''+'\n')
 
     handle.write('if [ -f ' +'mesh_mask.nc'+' ]; then'+'\n')
@@ -92,7 +94,8 @@ if __name__ == "__main__":
 
     LogStart('',fout=False)
 
-    ofol='/work/n02/n02/chbull/nemo/nemo_output/'
+    #ofol='/work/n02/n02/chbull/nemo/nemo_output/'
+    ofol='/scratch/E5N/lsaddier/nemo/nemo_output/'
 
     lg.info("******************************************")
     lg.info("*   project "+rP_PROJ  +"                    ")
@@ -107,8 +110,11 @@ if __name__ == "__main__":
     YEAR=rP_YEAR0
 
     NDAYS=365
+    NDAYS=360
     nml = f90nml.read(nmlpath)
-    RN_DT=nml['namdom']['rn_rdt']
+    #LouisS, this is because you are using Nemo4.2.1 where they changed the time step variable name, who knows why?! CB
+    #RN_DT=nml['namdom']['rn_rdt']
+    RN_DT=nml['namdom']['rn_Dt']
 
     lineList=[]
     fileHandle = open(rP_WORKDIR+ 'prod_nemo.db',"r" )
@@ -120,6 +126,22 @@ if __name__ == "__main__":
     NRUN,YEAR,NITENDM1=lineList[-1].strip().split(' ')
     #lg.info("./prod_nemo.db says, run to do is: " + str(lineList[-1]))
     NITEND=str(int(float(str(int(NITENDM1) + int(NDAYS) * 86400 / int(RN_DT)))))
+
+    #cb ksh workaround
+    rebuildnemo_nam=rP_WORKDIR+'nam_rebuild'
+    with ctx.closing(open(rebuildnemo_nam,'w')) as handle:
+        handle.write('&nam_rebuild'+'\n')
+        handle.write("filebase='mesh_mask'"+'\n')
+        handle.write('ndomain='+str(rP_OCEANCORES)+'\n')
+        handle.write('/'+'\n')
+
+    #cb ksh workaround
+    rebuildnemorestart_nam=rP_WORKDIR+'nam_rebuild_restart'
+    with ctx.closing(open(rebuildnemorestart_nam,'w')) as handle:
+        handle.write('&nam_rebuild'+'\n')
+        handle.write("filebase='"+rP_CONFIG+'_'+rP_CASE+'_'+NITEND.zfill(8)+'_'+'restart'+"'"+'\n')
+        handle.write('ndomain='+str(rP_OCEANCORES)+'\n')
+        handle.write('/'+'\n')
 
     rnemo=rP_WORKDIR+'GoGGoNEMO_'+str(NRUN).zfill(4)+'.sh'
     with ctx.closing(open(rnemo,'w')) as handle:
@@ -135,7 +157,7 @@ if __name__ == "__main__":
             handle.write('if [ -f ' +'output.init_0000.nc'+' ]; then'+'\n')
             handle.write('   '+'\n')
             handle.write('   echo "Re-combining: '+'output.init'+'"'+'\n')
-            handle.write('   srun -n 1 '+'rebuild_nemo'+' '+'output.init'+' '+str(rP_OCEANCORES)+'\n')
+            handle.write('   mpirun -np 1 '+'rebuild_nemo'+' '+'output.init'+' '+str(rP_OCEANCORES)+'\n')
             handle.write('   '+'\n')
 
             handle.write('   if [ -f ' +'output.init.nc'+' ]; then'+'\n')
@@ -166,11 +188,14 @@ if __name__ == "__main__":
             handle.write(''+'\n')
             handle.write('echo "Re-combining: '+f+'"'+'\n')
             handle.write('mkdir tempo '+'\n')
+            handle.write('mv '+'nam_rebuild_restart' +' tempo/nam_rebuild'+'\n')
             handle.write('mv '+f_star +' tempo/'+'\n')
             handle.write('cp '+'rebuild_nemo*' +' tempo/'+'\n')
             handle.write('cd tempo '+'\n')
 
-            handle.write('srun -n 1 '+'rebuild_nemo'+' '+f[:-3]+' '+str(rP_OCEANCORES)+'\n')
+            #cb ksh workaround
+            #handle.write('mpirun -np 1 '+'rebuild_nemo'+' '+f[:-3]+' '+str(rP_OCEANCORES)+'\n')
+            handle.write('mpirun -np 1 '+'rebuild_nemo'+' '+'nam_rebuild'+'\n')
 
             handle.write('if [ -f ' +f+' ]; then'+'\n')
             handle.write('   echo "File: '+f+' reassembled ok"'+'\n')
